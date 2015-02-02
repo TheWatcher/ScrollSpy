@@ -4,6 +4,7 @@ description:     ScrollSpy
 
 authors:
   - David Walsh (http://davidwalsh.name)
+  - Chirs Page (http://www.starforge.co.uk)
 
 license:
   - MIT-style license
@@ -22,9 +23,9 @@ var ScrollSpy = new Class({
 
 	/* options */
 	options: {
-		container: window,
 		max: 0,
 		min: 0,
+        buffer: 150,
 		mode: 'vertical'/*,
 		onEnter: $empty,
 		onLeave: $empty,
@@ -34,58 +35,89 @@ var ScrollSpy = new Class({
 	},
 
 	/* initialization */
-	initialize: function(options) {
+	initialize: function(container, options) {
 		/* set options */
 		this.setOptions(options);
-		this.container = document.id(this.options.container);
+		this.container = document.id(container);
 		this.enters = this.leaves = 0;
 		this.inside = false;
-		
-		/* listener */
-		var self = this;
-		this.listener = function(e) {
-			/* if it has reached the level */
-			var position = self.container.getScroll(),
-				xy = position[self.options.mode == 'vertical' ? 'y' : 'x'];
-			/* if we reach the minimum and are still below the max... */
-			if(xy >= self.options.min && (self.options.max == 0 || xy <= self.options.max)) {
-					/* trigger enter event if necessary */
-					if(!self.inside) {
-						/* record as inside */
-						self.inside = true;
-						self.enters++;
-						/* fire enter event */
-						self.fireEvent('enter',[position,self.enters,e]);
-					}
-					/* trigger the "tick", always */
-					self.fireEvent('tick',[position,self.inside,self.enters,self.leaves,e]);
-			}
-			/* trigger leave */
-			else if(self.inside){
-				self.inside = false;
-				self.leaves++;
-				self.fireEvent('leave',[position,self.leaves,e]);
-			}
-			/* fire scroll event */
-			self.fireEvent('scroll',[position,self.inside,self.enters,self.leaves,e]);
-		};
-		
+
+        /* if no min or max have been set, but a buffer has, work out the min
+         * using the size of the container, and the configured buffer.
+         */
+        if(!this.options.min && !this.options.max && this.options.buffer) {
+            if(this.options.mode == 'vertical') {
+                this.options.min = this.container.getScrollSize().y - this.container.getSize().y - this.options.buffer;
+            } else {
+                this.options.min = this.container.getScrollSize().x - this.container.getSize().x - this.options.buffer;
+            }
+        }
+
 		/* make it happen */
-		this.addListener();
-	},
-	
-	/* starts the listener */
-	start: function() {
-		this.container.addEvent('scroll',this.listener);
-	},
-	
-	/* stops the listener */
-	stop: function() {
-		this.container.removeEvent('scroll',this.listener);
+		this.start();
 	},
 
-	/* legacy */
-	addListener: function() {
-		this.start();
-	}
+    listener: function(e) {
+		/* if it has reached the level */
+		var position = this.container.getScroll(),
+			xy = position[this.options.mode == 'vertical' ? 'y' : 'x'];
+
+        /* if we reach the minimum and are still below the max... */
+		if(xy >= this.options.min && (this.options.max == 0 || xy <= this.options.max)) {
+
+			/* trigger enter event if necessary */
+			if(!this.inside) {
+				/* record as inside */
+				this.inside = true;
+				this.enters++;
+
+				/* fire enter event */
+				this.fireEvent('enter', [position, this.enters, e]);
+			}
+
+			/* trigger the "tick", always */
+			this.fireEvent('tick', [position, this.inside, this.enters, this.leaves, e]);
+
+        /* trigger leave */
+		} else if(this.inside){
+			this.inside = false;
+			this.leaves++;
+			this.fireEvent('leave', [position, this.leaves, e]);
+		}
+
+		/* fire scroll event */
+		this.fireEvent('scroll', [position, this.inside, this.enters, this.leaves, e]);
+	},
+
+	/* starts the listener */
+	start: function() {
+		this.container.addEvent('scroll', this.listener.bind(this));
+	},
+
+	/* stops the listener */
+	stop: function() {
+		this.container.removeEvent('scroll', this.listener);
+	},
+
+    update: function(min, max, reset) {
+        if(min !== undefined) this.options.min = min;
+        if(max !== undefined) this.options.max = max;
+
+        if(reset) {
+            this.enters = this.leaves = 0;
+
+            /* If the caller hasn't specified the boundaries, but does
+             * want to reset, recalculate the min.
+             */
+            if(min === undefined && max === undefined) {
+                if(this.options.mode == 'vertical') {
+                    this.options.min = this.container.getScrollSize().y - this.container.getSize().y - this.options.buffer;
+                } else {
+                    this.options.min = this.container.getScrollSize().x - this.container.getSize().x - this.options.buffer;
+                }
+            }
+        }
+
+        this.listener();
+    }
 });
