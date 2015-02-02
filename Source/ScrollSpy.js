@@ -46,11 +46,7 @@ var ScrollSpy = new Class({
          * using the size of the container, and the configured buffer.
          */
         if(!this.options.min && !this.options.max && this.options.buffer) {
-            if(this.options.mode == 'vertical') {
-                this.options.min = this.container.getScrollSize().y - this.container.getSize().y - this.options.buffer;
-            } else {
-                this.options.min = this.container.getScrollSize().x - this.container.getSize().x - this.options.buffer;
-            }
+            this.calculateMin();
         }
 
 		/* make it happen */
@@ -99,6 +95,10 @@ var ScrollSpy = new Class({
 		this.container.removeEvent('scroll', this.listener);
 	},
 
+    /** Update the scroll boundaries, and optionally reset the enter and leave
+     *  counters.
+     *
+     */
     update: function(min, max, reset) {
         if(min !== undefined) this.options.min = min;
         if(max !== undefined) this.options.max = max;
@@ -109,15 +109,23 @@ var ScrollSpy = new Class({
             /* If the caller hasn't specified the boundaries, but does
              * want to reset, recalculate the min.
              */
-            if(min === undefined && max === undefined) {
-                if(this.options.mode == 'vertical') {
-                    this.options.min = this.container.getScrollSize().y - this.container.getSize().y - this.options.buffer;
-                } else {
-                    this.options.min = this.container.getScrollSize().x - this.container.getSize().x - this.options.buffer;
-                }
+            if(min === undefined && max === undefined && this.options.buffer) {
+                this.calculateMin();
             }
         }
 
         this.listener();
+    },
+
+    /** Update the minimum boundary based on the container size and the
+     *  configured buffer. This is a convenience function to allow ScrollSpy
+     *  to automatically calculate the minimum boundary for scroll hot area.
+     */
+    calculateMin: function() {
+        if(this.options.mode == 'vertical') {
+            this.options.min = this.container.getScrollSize().y - this.container.getSize().y - this.options.buffer;
+        } else {
+            this.options.min = this.container.getScrollSize().x - this.container.getSize().x - this.options.buffer;
+        }
     }
 });
