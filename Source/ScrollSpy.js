@@ -102,16 +102,11 @@ var ScrollSpy = new Class({
     update: function(min, max, reset) {
         if(min !== undefined) this.options.min = min;
         if(max !== undefined) this.options.max = max;
+        if(reset)  this.enters = this.leaves = 0;
 
-        if(reset) {
-            this.enters = this.leaves = 0;
-
-            /* If the caller hasn't specified the boundaries, but does
-             * want to reset, recalculate the min.
-             */
-            if(min === undefined && max === undefined && this.options.buffer) {
-                this.calculateMin();
-            }
+        /* If the caller hasn't specified the boundaries, recalculate the min. */
+        if(min === undefined && max === undefined && this.options.buffer) {
+            this.calculateMin();
         }
 
         this.listener();
